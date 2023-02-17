@@ -95,23 +95,20 @@ class WristDetectionNode:
         image = self.bridge.from_ros_image(data, encoding='bgr8')
 
         # Run pose estimation
-        poses,coordinates = self.pose_estimator.infer(image)
+        poses= self.pose_estimator.infer(image)
+
+        #print(poses[0])
+        r = poses[0][4]
+        l = poses[0][7]
 
         """
-        POSE KEYPOINTS DEFINITIONS
-
-        2:right shoulder
-        3:right elbow
-        4:right wrist
-
-        5:left shoulder
-        6:left elbow
-        7:left wrist
-
+        print("l_wrist_x = {}, l_wrist_y = {}, r_wrist_x = {}, r_wrist_y  = {}"
+              .format(poses[0][4][0], poses[0][4][1],
+                      poses[0][7][0],poses[0][7][1]))
         """
 
-        r = coordinates[4] # right wrist coordinates
-        l = coordinates[7] # left wrist coordinates
+        #r = coordinates[4] # right wrist coordinates
+        #l = coordinates[7] # left wrist coordinates
 
         image = image.opencv()
         width = image.shape
@@ -119,71 +116,52 @@ class WristDetectionNode:
         black_color = (0, 0, 0)
         white_color= (255, 255, 255)
         red_color = (0, 0, 255)
-        thickness = 6
-        fontScale = 2
+        thickness = 5
+        fontScale = 1.5
         font = cv2.FONT_HERSHEY_DUPLEX
 
-        image = cv2.rectangle(image, (0, 415), (400, 500), (0, 0, 0), -1)
-        image = cv2.rectangle(image, (1520,415), (1920,500), (0, 0, 0), -1)
+        #image = cv2.rectangle(image, (0, 0), (800, 800), (0, 0, 0), -1)  #black boxes
+        #image = cv2.rectangle(image, (1100,0), (1920,800), (0, 0, 0), -1)
 
-        # In case we dont like the coloring locks : 
-        """
-        image = cv2.rectangle(image, (0, 0), (400, 400), color, 6)
-        image = cv2.rectangle(image, (1520,0), (1920,400), color, 6)
 
-        cv2.putText(image, 'UNLOCKED', (15, 480), font, fontScale, (255, 255, 255), thickness, cv2.LINE_AA)
-        cv2.putText(image, 'LOCKED', (1600, 480), font, fontScale, (255, 255, 255), thickness, cv2.LINE_AA)
-        """
-        
         self.toc = time.perf_counter()
-        cv2.putText(image,  str(self.toc), (10, 890), font, fontScale, (255, 255, 255), thickness, cv2.LINE_AA)
+ 
+
 
 
         if self.Lock == True:
-            cv2.putText(image, 'UNLOCKED', (15, 480), font, fontScale, white_color, thickness, cv2.LINE_AA)
-            cv2.putText(image, 'LOCKED', (1600, 480), font, fontScale, green_color, thickness, cv2.LINE_AA)
-            image = cv2.rectangle(image, (0, 0), (400, 400), white_color, 6)
-            image = cv2.rectangle(image, (1520,0), (1920,400), green_color, 6)
+
+                cv2.putText(image, 'UNLOCKED', (1300-80, 480), font, fontScale, white_color, thickness, cv2.LINE_AA)
+                cv2.putText(image, 'LOCKED', (1700-80, 480), font, fontScale, green_color, thickness, cv2.LINE_AA)
+                image = cv2.rectangle(image, (100, 0), (600, 900), white_color, 6)
+                image = cv2.rectangle(image, (1200,0), (1700,900), green_color, 6)
 
         else:
-            cv2.putText(image, 'LOCKED', (1600, 480), font, fontScale, white_color, thickness, cv2.LINE_AA)
-            cv2.putText(image, 'UNLOCKED', (15, 480), font, fontScale, green_color, thickness, cv2.LINE_AA)
-            image = cv2.rectangle(image, (0, 0), (400, 400), green_color, 6)
-            image = cv2.rectangle(image, (1520,0), (1920,400), white_color, 6)
+                cv2.putText(image, 'LOCKED', (1700-80, 480), font, fontScale, white_color, thickness, cv2.LINE_AA)
+                cv2.putText(image, 'UNLOCKED', (1300-80, 480), font, fontScale, green_color, thickness, cv2.LINE_AA)
+                image = cv2.rectangle(image, (100, 0), (600, 900), green_color, 6)
+                image = cv2.rectangle(image, (1200,0), (1700,900), white_color, 6)
 
 
-        if r[0] != -1:
+
+
+
+
+        if r[0] != -1 and l[0] != -1:
+        
             cv2.circle(image,(r[0],r[1]), 15, red_color, -1)
             cv2.putText(image, 'handRIGHT', (r[0],r[1]), font, fontScale, green_color, thickness, cv2.LINE_AA)
+            cv2.circle(image,(l[0],l[1]), 15, red_color, -1)
+            cv2.putText(image, 'handLEFT', (l[0],l[1]), font, fontScale, green_color, thickness, cv2.LINE_AA) 
             #print(r)
 
      
-            if r[0] < 415 and r[1] < 415:
-                self.Lock = False
-                self.hadi[self.counter][0] = 1 # right
-                self.hadi[self.counter][1] = self.toc 
+            if r[0] > 100 and r[1] < 900:
+                if r[0] < 600:
+                    self.Lock = False
 
-            if l[0] > 1520 and l[1] < 415:
+            if l[0] > 1200 and l[1] < 900:
                 self.Lock = True      
-                self.hadi[self.counter][0] = 0 #left
-                self.hadi[self.counter][1] = self.toc 
-        
-        if l[0] != -1:
-            cv2.circle(image,(l[0],l[1]), 15, red_color, -1)
-            cv2.putText(image, 'handLEFT', (l[0],l[1]), font, fontScale, green_color, thickness, cv2.LINE_AA) 
-            
-            if r[0] < 415 and r[1] < 415:
-                self.Lock = False
-                self.hadi[self.counter][0] = 1 # right
-                self.hadi[self.counter][1] = self.toc 
-
-            if l[0] > 1520 and l[1] < 415:
-                self.Lock = True      
-                self.hadi[self.counter][0] = 0 #left
-                self.hadi[self.counter][1] = self.toc 
-                       
-        df = pd.DataFrame(self.hadi).T   
-        df.to_excel(excel_writer = "/home/mako/Desktop/output.xlsx") 
 
 
 
@@ -198,11 +176,12 @@ class WristDetectionNode:
         self.fps_array = np.append(self.fps_array,fps)
         average_fps = np.mean(self.fps_array)
         framde_delay = 1000/average_fps
+
         print("Current Fps: ",fps)
         print("Average Fps: ",average_fps)
         print("Frame delay(ms): ",framde_delay)
         print("----------------")
-
+        cv2.putText(image,  str(average_fps), (10, 890), font, fontScale, (255, 255, 255), thickness, cv2.LINE_AA)
 
         if self.command_publisher is not None:
 
@@ -227,7 +206,7 @@ class WristDetectionNode:
                 num = i
  
         return num      
-
+     
 
 if __name__ == '__main__':
     # Select the device for running the
@@ -243,3 +222,5 @@ if __name__ == '__main__':
 
     pose_estimation_node = WristDetectionNode(device=device)
     pose_estimation_node.listen()
+
+
