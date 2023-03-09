@@ -21,6 +21,20 @@ class Babole:
         self.rocker_pose = []
         self.input_image__command_topic = input_image__command_topic
 
+        self.engine_pos = Pose()
+        self.rod_pose_right = Pose()
+        self.rod_pose_left = Pose()
+        self.bolt_pose= Pose()
+        self.rod_hole_0 = Pose()
+        self.rod_hole_1 = Pose()
+        self.bolt_hole_0 =Pose()
+
+        self.side = ' '
+        self.placement = 0
+
+
+
+
     def listen(self):
         """
         Start the node and begin processing input data
@@ -35,21 +49,37 @@ class Babole:
 
         print(data)
         if data.data == True:
-            self.rod_pose = [0,0,0]
-            #rocker_pose = [1,1,1]
+            self.side = 'Right'
         else:
-            self.rod_pose = [2,2,2]
-
-        print(self.rod_pose)
-
-    """
+            self.side = 'Left'
+    
 
     def voice_callback(self,msg):
 
-        if msg == 'GRASP':
-            self.cartesian_action_service_2D(self.rod_pose)
-    """
+        if msg[0] == 'PICK':
+            if msg[1] == 'BOLT':
+                if self.side == 'Right':
+                    self.pick_and_place_client.pick(self.bolt_pose)
+                    self.placement= 0
 
+            elif msg[1] == 'ROD':
+                if self.side == 'Right':
+                    self.pick_and_place_client.pick(self.rod_pose_right)
+                    self.placement= 1
+                else:
+                    self.pick_and_place_client.pick(self.rod_pose_left)
+                    self.placement= 2  
+        elif msg[0] == 'PLACE':
+            if self.placement == 0:
+                self.pick_and_place_client.place(self.rod_hole_0)
+            elif self.placement == 1:
+                self.pick_and_place_client.place(self.rod_hole_1)
+            elif self.placement == 2:
+                self.pick_and_place_client.place(self.bolt_hole_0)
+
+        elif msg[0] == 'GO HOME':
+            # GO HOME COMMAND IN MOVEIT PICK_AND_PLACE.PY
+    
 if __name__ == '__main__':
 # Select the device for running the
     opendr_fusion_node = Babole()
