@@ -33,6 +33,7 @@ class CommandCreator(object):
 			'banner': 'PANDA',
 			'panda': 'PANDA',
 			'ponder' : 'PANDA',
+			'pander' : 'PANDA',
 			'bond' : 'PANDA',
 			'under' : 'PANDA',
 			'fonda' : 'PANDA',
@@ -149,6 +150,10 @@ class CommandCreator(object):
 			'road' : 'ROD',
 			'odd' : 'ROD',
 
+			'give' : 'GIVE',
+			'gimme' : 'GIVE',
+
+			'rocker' : 'ROCKER',
 
 			'boat' : 'BOLT',
 			'bolt' : 'BOLT', 
@@ -268,6 +273,8 @@ class CommandCreator(object):
 			return self.pick_command(words)
 		elif command == "PLACE":
 			return self.place_command(words)
+		elif command == "GIVE":
+			return self.give_command(words)
 		#___________________MOVING COMMANDS____________________________
 		elif command in ['LEFT', 'RIGHT', 'FORWARD', 'BACKWARD']:
 			# Check distance
@@ -571,6 +578,23 @@ class CommandCreator(object):
 					  ' ROD and BOLT.')
             
 			return ['PLACE', tool_select]
+		except Exception as e:
+			print('Invalid tool command. ', e)
+			return None
+
+	def give_command(self,words):
+
+		try:
+			if len(words) != 1:
+				return None
+			word = words.pop(0)
+			tool_select = self.all_words_lookup_table.get(word, '')
+			if tool_select not in ['ROD', 'BOLT', 'ROCKER']:
+				raise ValueError('Command: ', tool_select, 
+					 ' not valid command for gripper tool. Valid commands are'
+					  ' ROCKER, ROD and BOLT.')
+            
+			return ['GIVE', tool_select]
 		except Exception as e:
 			print('Invalid tool command. ', e)
 			return None
