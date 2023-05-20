@@ -32,11 +32,16 @@ from opendr.engine.data import Image
 
 import pandas as pd 
 
+
+#919122070138 cam_1 object
+#845112071321  cam_2 skeleton
+
+
 class WristDetectionNode:
 
-    def __init__(self, input_image_topic="/camera/color/image_raw", output_image_topic="/opendr/image_pose_annotated",
+    def __init__(self, input_image_topic="/cam_2/color/image_raw", output_image_topic="/opendr/image_pose_annotated",
                  pose_annotations_topic="/opendr/poses",
-                 device="cuda", output_command_topic="/opendr/commands"):
+                 device="cuda", output_command_topic="/opendr/commands",output_human_topic="/opendr/human_pose"):
 
 
         if output_image_topic is not None:
@@ -50,11 +55,16 @@ class WristDetectionNode:
             self.pose_publisher = None
 
         if output_command_topic is not None: 
-            self.command_publisher =  rospy.Publisher(output_command_topic,Bool, queue_size=10)
+            self.command_publisher =  rospy.Publisher(output_command_topic,String, queue_size=10)
         else:
             self.command_publisher = None
+        if output_human_topic is not None: 
+            self.human_pose_publisher =  rospy.Publisher(output_human_topic,String, queue_size=10)
+        else:
+            self.human_pose_publisher = None
 
 
+            
 
         self.input_image_topic = input_image_topic
         self.bridge = ROSBridge()
@@ -67,8 +77,9 @@ class WristDetectionNode:
         self.pose_estimator.download(path=".", verbose=True)
         self.pose_estimator.load("openpose_default")
         self.cdArray_x = []
-        self.cdArray_y= []
+        self.cdArray_y = []
 
+        self.human_pose = 'Middle'
         self.counter = 0
         self.Lock = 'CONTINUE'
         self.prev_frame_time = 0
@@ -95,13 +106,16 @@ class WristDetectionNode:
         image = self.bridge.from_ros_image(data, encoding='bgr8')
 
         # Run pose estimation
-        poses, coordinates= self.pose_estimator.infer(image)
+        poses = self.pose_estimator.infer(image)
 
         #print(poses[0])
-        #r = poses[0][4]
-        #l = poses[0][7]
-        r = coordinates[4] # right wrist coordinates
-        l = coordinates[7] # left wrist coordinates
+
+        r = poses[0][4]
+        l = poses[0][7]
+
+        m = poses[0][1]
+        #r = coordinates[4] # right wrist coordi nates
+        #l = coordinates[7] # left wrist coordinates
 
 
         """
@@ -126,10 +140,10 @@ class WristDetectionNode:
 
         right_box = [550 ,750]
         yLimit= [500 ,700]
-        left_box = [950,1150]
+        left_box = [1050,1250]
 
         rup_box = [550 ,750] # [1000 ,1400]
-        yupLimit = [0 ,400]
+        yupLimit = [0 ,250]
         lup_box =  [950,1150] # [1520 ,1920]
 
         #image = cv2.rectangle(image, (0, 0), (800, 800), (0, 0, 0), -1)  #black boxes
@@ -138,36 +152,77 @@ class WristDetectionNode:
 
         self.toc = time.perf_counter()
  
+        if m[0] != -1:
+
+
+            if m[0] > 0 and m[0] < 600:
+                self.human_pose = 'Right'
+
+            elif m[0] > 600 and m[0] < 1200:
+                self.human_pose = 'Middle'
+
+            elif m[0] > 1200 and m[0] < 1920:
+                self.human_pose = 'Left'
+                
 
 
 
-        if self.Lock == 'RIGHT':
+        if r[0] != -1 and l[0] != -1:
+        
+
+            cv2.putText(image, self.human_pose, (m[0],m[1]), font, fontScale, green_color, thickness, cv2.LINE_AA)
+            cv2.circle(image,(m[0],m[1]), 15, red_color, -1)
+            cv2.circle(image,(r[0],r[1]), 15, red_color, -1)
+            cv2.putText(image, 'handRIGHT', (r[0],r[1]), font, fontScale, green_color, thickness, cv2.LINE_AA)
+            cv2.circle(image,(l[0],l[1]), 15, red_color, -1)
+            cv2.putText(image, 'handLEFT', (l[0],l[1]), font, fontScale, green_color, thickness, cv2.LINE_AA) 
+            #print(r)
+
+     
+            if r[0] > right_box[0] and r[0] < right_box[1]:
+                if r[1] > yLimit[0] and r[1] < yLimit[1]:
+                    self.Lock = 'RIGHT'
+
+            if l[0] > left_box[0] and l[0] < left_box[1]:
+                if l[1] > yLimit[0] and l[1] < yLimit[1]:  
+                    self.Lock = 'LEFT'      
+
+            if r[0] > rup_box[0] and r[0] < rup_box[1]:
+                if r[1] > yupLimit[0] and r[1] < yupLimit[1]:
+                    self.Lock = 'CONTINUE'
+
+            if l[0] > lup_box[0] and l[0] < lup_box[1]:
+                if l[1] > yupLimit[0] and l[1] < yupLimit[1]:  
+                    self.Lock = 'PAUSE'       
+
+
+        if self.Lock == 'LEFT':
 
                 cv2.putText(image, 'UNLOCKED', (lup_box[0], yupLimit[1] + 50), font, fontScale, white_color, thickness, cv2.LINE_AA)
-                cv2.putText(image, 'LOCKED', (rup_box[0], yupLimit[1]+ 50), font, fontScale, green_color, thickness, cv2.LINE_AA)
+                cv2.putText(image, 'LOCKED', (rup_box[0], yupLimit[1]+ 50), font, fontScale, white_color, thickness, cv2.LINE_AA)
                 image = cv2.rectangle(image, (right_box[0], yLimit[0]), (right_box[1], yLimit[1]), white_color, 6)
                 image = cv2.rectangle(image, (left_box[0],yLimit[0]), (left_box[1],yLimit[1]), green_color, 6)
                 image = cv2.rectangle(image, (rup_box[0], yupLimit[0]), (rup_box[1], yupLimit[1]), white_color, 6)
                 image = cv2.rectangle(image, (lup_box[0],yupLimit[0]), (lup_box[1],yupLimit[1]), white_color, 6)
-        elif self.Lock == 'LEFT':
-                cv2.putText(image, 'UNLOCKED', (lup_box[0], yupLimit[1] + 50), font, fontScale, green_color, thickness, cv2.LINE_AA)
+        elif self.Lock == 'RIGHT':
+                cv2.putText(image, 'UNLOCKED', (lup_box[0], yupLimit[1] + 50), font, fontScale, white_color, thickness, cv2.LINE_AA)
                 cv2.putText(image, 'LOCKED', (rup_box[0], yupLimit[1]+ 50), font, fontScale, white_color, thickness, cv2.LINE_AA)
                 image = cv2.rectangle(image, (right_box[0], yLimit[0]), (right_box[1], yLimit[1]), green_color, 6)
                 image = cv2.rectangle(image, (left_box[0],yLimit[0]), (left_box[1],yLimit[1]), white_color, 6)
                 image = cv2.rectangle(image, (rup_box[0], yupLimit[0]), (rup_box[1], yupLimit[1]), white_color, 6)
                 image = cv2.rectangle(image, (lup_box[0],yupLimit[0]), (lup_box[1],yupLimit[1]), white_color, 6)
 
-        elif self.Lock == 'STOP':
+        elif self.Lock == 'CONTINUE':
 
-                cv2.putText(image, 'UNLOCKED', (lup_box[0], yupLimit[1] + 50), font, fontScale, green_color, thickness, cv2.LINE_AA)
-                cv2.putText(image, 'LOCKED', (rup_box[0], yupLimit[1]+ 50), font, fontScale, white_color, thickness, cv2.LINE_AA)
+                cv2.putText(image, 'UNLOCKED', (lup_box[0], yupLimit[1] + 50), font, fontScale, white_color, thickness, cv2.LINE_AA)
+                cv2.putText(image, 'LOCKED', (rup_box[0], yupLimit[1]+ 50), font, fontScale, green_color, thickness, cv2.LINE_AA)
                 image = cv2.rectangle(image, (right_box[0], yLimit[0]), (right_box[1], yLimit[1]), white_color, 6)
                 image = cv2.rectangle(image, (left_box[0],yLimit[0]), (left_box[1],yLimit[1]), white_color, 6)
                 image = cv2.rectangle(image, (rup_box[0], yupLimit[0]), (rup_box[1], yupLimit[1]), green_color, 6)
                 image = cv2.rectangle(image, (lup_box[0],yupLimit[0]), (lup_box[1],yupLimit[1]), white_color, 6)
 
 
-        elif self.Lock == 'CONTINUE':
+        elif self.Lock == 'PAUSE':
 
                 cv2.putText(image, 'UNLOCKED', (lup_box[0], yupLimit[1] + 50), font, fontScale, green_color, thickness, cv2.LINE_AA)
                 cv2.putText(image, 'LOCKED', (rup_box[0], yupLimit[1]+ 50), font, fontScale, white_color, thickness, cv2.LINE_AA)
@@ -179,25 +234,8 @@ class WristDetectionNode:
 
 
 
-        if r[0] != -1 and l[0] != -1:
-        
-            cv2.circle(image,(r[0],r[1]), 15, red_color, -1)
-            cv2.putText(image, 'handRIGHT', (r[0],r[1]), font, fontScale, green_color, thickness, cv2.LINE_AA)
-            cv2.circle(image,(l[0],l[1]), 15, red_color, -1)
-            cv2.putText(image, 'handLEFT', (l[0],l[1]), font, fontScale, green_color, thickness, cv2.LINE_AA) 
-            #print(r)
 
-     
-            if r[0] > right_box[0] and r[0] < right_box[1]:
-                if r[1] > yLimit[0] and r[1] < yLimit[1]:
-                    self.Lock = False
-
-            if l[0] > left_box[0] and l[0] < left_box[1]:
-                if l[1] > yLimit[0] and l[1] < yLimit[1]:  
-                    self.Lock = True      
-
-
-
+ 
 
 
         #FPS AND DELAY COUNT
@@ -222,6 +260,13 @@ class WristDetectionNode:
 
             #print(self.Lock)
             self.command_publisher.publish(self.Lock)
+
+        if self.human_pose_publisher is not None:
+
+            #print(self.Lock)
+            self.human_pose_publisher.publish(self.human_pose)
+            
+
 
         if self.image_publisher is not None:
             message = self.bridge.to_ros_image(Image(image), encoding='bgr8')
