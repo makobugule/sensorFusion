@@ -4,7 +4,7 @@
 <br />This branch includes speech recognition, gesture recogntion and sensor fusion scripts. 
 
 <br />Speech recognition scripts: microphone_input.py  and commandCreator.py 
-        microphone_input.py: Main script to run on terminal. Vosk is inside here. Publishes string messeage such as PICK ROD, PLACE ROD, GIVE ROCKER, GO HOME etc. 
+      <br /><br />microphone_input.py: Main script to run on terminal. Vosk is inside here. Publishes string messeage such as PICK ROD, PLACE ROD, GIVE ROCKER, GO HOME etc. 
         commandCreator.py: Includes definitions of usefull words and possible misunderstood words, command functions such as pick, place, go home. 
 <br />Gesture recognition script: wrist_detection.py
         wrist detection.py: Includes left, right wrist and neck keypoint detections. Publishes string message such as LEFT(wrist), RIGHT(wrist), PAUSE, CONTINUE, LEFT(neck), RIGHT(neck), MIDDLE(neck).
