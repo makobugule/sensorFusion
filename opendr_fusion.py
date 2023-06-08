@@ -60,6 +60,11 @@ class Babole:
         with open(str(Path.home() / filename)+'.yml', "r") as stream:
             self.poses = yaml.safe_load(stream)
         # print(self.poses)
+
+        
+        #--------------PRERECORDED POSSES------------------#,
+
+        """
         self.rod_pose_left.pose.position.x = self.poses[0][0]
         self.rod_pose_left.pose.position.y = self.poses[0][1]
         self.rod_pose_left.pose.position.z = self.poses[0][2]
@@ -69,14 +74,6 @@ class Babole:
         self.rod_pose_left.pose.orientation.w = self.poses[0][6]
         self.rod_pose_left.force = 20.0
         self.rod_pose_left.width = 0.008
-
-        self.hand_over.position.x = 0.7335193772726805
-        self.hand_over.position.y = -0.16851981119747114
-        self.hand_over.position.z = 0.25836742430589843
-        self.hand_over.orientation.x = 0.9997962098991813
-        self.hand_over.orientation.y = 0.016963925381664604
-        self.hand_over.orientation.z = 0.010720903250329676
-        self.hand_over.orientation.w = 0.0021968478269389297
 
         self.rod_pose_right.pose.position.x = self.poses[1][0]
         self.rod_pose_right.pose.position.y = self.poses[1][1]
@@ -97,6 +94,15 @@ class Babole:
         self.bolt_pose.pose.orientation.w = self.poses[2][6]
         self.bolt_pose.force = 20.0
         self.bolt_pose.width = 0.01
+        """
+
+        self.hand_over.position.x = 0.7335193772726805
+        self.hand_over.position.y = -0.16851981119747114
+        self.hand_over.position.z = 0.25836742430589843
+        self.hand_over.orientation.x = 0.9997962098991813
+        self.hand_over.orientation.y = 0.016963925381664604
+        self.hand_over.orientation.z = 0.010720903250329676
+        self.hand_over.orientation.w = 0.0021968478269389297
 
         self.rod_hole_0.position.x = self.poses[3][0]
         self.rod_hole_0.position.y = self.poses[3][1]
@@ -154,38 +160,33 @@ class Babole:
         """
         Start the node and begin processing input data
         """
-        # rospy.Subscriber(self.input_object__command_topic, ObjectHypothesisWithPose, self.object_callback)
-        # print("Object detection has started")
 
         self.pushrod_id = self.detections.find_object_by_category("pushrod")
         self.pushrod_poses = self.detections.get_object_pose(self.pushrod_id)
         self.pushrod_pose.width = 0.008
         self.pushrod_pose.force = 20.0
 
-        self.pushrod_pose_right.width = 0.008
-        self.pushrod_pose_right.force = 20.0
-
-
 
 
         self.rocker_id = self.detections.find_object_by_category("rocker arm object")
         self.rocker_poses= self.detections.get_object_pose(self.rocker_id)
+
+        """
+        # -------------FOR POINTING SCENARIO----------------#
+
         self.rocker_pose.width = 0.015
         self.rocker_pose.force = 20.0
         self.rocker_pose_right.width = 0.015
         self.rocker_pose_right.force = 20.0
 
-
-
-
-     
         self.rocker_pose_right.pose = self.rocker_poses[0]
         self.rocker_pose_right.pose.position.y = self.rocker_pose.pose.position.y + 0.07
-
         self.rocker_pose.pose = self.rocker_poses[1]
         self.rocker_pose.pose.position.y = self.rocker_pose.pose.position.y + 0.07
-        print(self.rocker_poses)
-        #print(self.pushrod_poses            )
+        self.pushrod_pose_right.width = 0.008
+        self.pushrod_pose_right.force = 20.0
+
+        """
 
 
     def object_callback(self, data):
@@ -196,54 +197,10 @@ class Babole:
 
             self.id_List[data.id] = [data.pose.pose.position.x,data.pose.pose.position.y,data.pose.pose.position.z,data.pose.pose.orientation.x,
                                         data.pose.pose.orientation.y,data.pose.pose.orientation.z,data.pose.pose.orientation.w]
-        if data.id == 6:
-            if self.ctbolt < 1:
-                print("Rod is detected")
-                self.ctbolt += 1
-            y_modified = self.id_List[6][1] + 0.070
-            self.rod_pose = PickGoal()
-            self.rod_pose.pose.position.x = self.id_List[6][0]
-            self.rod_pose.pose.position.y = y_modified
-            self.rod_pose.pose.position.z = self.id_List[6][2]
-            self.rod_pose.pose.orientation.x = self.id_List[6][3]
-            self.rod_pose.pose.orientation.y = self.id_List[6][4]
-            self.rod_pose.pose.orientation.z = self.id_List[6][5]
-            self.rod_pose.pose.orientation.w = self.id_List[6][6]
-            self.rod_pose.force = 20.0
-            self.rod_pose.width = 0.008
 
-        if data.id == 5:
-            if self.ctrod < 1:
-                print("Bolt is detected")
-                self.ctrod += 1
-            y_modified = self.id_List[5][1] + 0.070
-            self.bolt_pose = PickGoal()
-            self.bolt_pose.pose.position.x = self.id_List[5][0]
-            self.bolt_pose.pose.position.y = y_modified
-            self.bolt_pose.pose.position.z = self.id_List[5][2]
-            self.bolt_pose.pose.orientation.x = self.id_List[5][3]
-            self.bolt_pose.pose.orientation.y = self.id_List[5][4]
-            self.bolt_pose.pose.orientation.z = self.id_List[5][5]
-            self.bolt_pose.pose.orientation.w = self.id_List[5][6]
-            self.bolt_pose.force = 20.0
-            self.bolt_pose.width = 0.01
-        if data.id == 7:
-            self.rocker_pose = PickGoal()
-            self.rocker_pose.pose.position.x = self.id_List[7][0]
-            self.rocker_pose.pose.position.y = y_modified
-            self.rocker_pose.pose.position.z = self.id_List[7][2]
-            self.rocker_pose.pose.orientation.x = self.id_List[7][3]
-            self.rocker_pose.pose.orientation.y = self.id_List[7][4]
-            self.rocker_pose.pose.orientation.z = self.id_List[7][5]
-            self.rocker_pose.pose.orientation.w = self.id_List[7][6]
-            self.rocker_pose.force = 20.0  # change those
-            self.rocker_pose.width = 0.01
-        # print(self.id_List)
 
     def visual_callback(self, vis):
-        # if vis.data == 'RIGHT' or vis.data == 'LEFT':
         self.side = vis.data
-        #print(self.side)
         #print(self.side)
 
     def handover_callback(self,loc):
@@ -314,27 +271,23 @@ class Babole:
 
         if msg[0] == 'PICK':
             if msg[1] == 'BOLT':
-                print("picking the bolt")
+                print("picking bolt")
                 self.pick_and_place_client.pick(self.bolt_pose)
                 self.placement = 2
 
             elif msg[1] == 'ROD':
 
+                print("picking rod")
+                self.pushrod_pose.pose = self.pushrod_poses[self.rod_ct]
+                self.pushrod_pose.pose.position.y = self.pushrod_pose.pose.position.y + 0.07
+                self.pick_and_place_client.pick(self.pushrod_pose)
+                self.rod_ct += 1
+                self.placement = self.rod_ct
+              
 
-                print(self.side)
                 """
-                if self.side == 'RIGHT':
-                    print("picking rod on the right")
-                    self.pick_and_place_client.pick(self.pushrod_pose_right)
-                    self.placement = 0
+                # -------------FOR POINTING SCENARIO----------------#
 
-                elif self.side == 'LEFT':
-                    print("picking rod on the left")
-                    self.pick_and_place_client.pick(self.pushrod_pose)
-                    self.placement = 1
-                else:
-                    print("Which rod?")
-                """
                 if self.side == 'RIGHT':
 
                     self.pushrod_pose.pose = self.pushrod_poses[0]
@@ -354,16 +307,18 @@ class Babole:
                     self.placement = self.rod_ct
                 else:
                     print("which  one")
-
+                """
         elif msg[0] == 'GIVE':
             if msg[1] == 'ROCKER':
-                """
+
+                print("handing over a rocker arm")
                 self.rocker_pose.pose = self.rocker_poses[self.rocker_ct]
                 self.rocker_pose.pose.position.y = self.rocker_pose.pose.position.y + 0.07
 
                 self.pick_and_place_client.pick_and_give(self.rocker_pose, self.hand_over)
                 self.rocker_ct += 1
                 """
+                # -------------FOR POINTING SCENARIO----------------#
                 print(self.side)
 
                 if self.side == 'RIGHT':
@@ -377,8 +332,10 @@ class Babole:
                     self.placement = 1
                 else:
                     print("Which rocker?")
-
+                """
             else :
+
+                print("handing over")
                 self.pick_and_place_client.give(self.hand_over)
 
         elif msg[0] == 'PLACE':
@@ -404,14 +361,10 @@ class Babole:
                 self.pick_and_place_client.place(self.rod_hole_3)
 
         elif msg[0] == 'MOVE' and msg[1] == 'HOME':
-            joint_pose = [-2.8298893005650064e-05, -0.7850717113980075, 0.0002637194674237419, -2.3563226722248816, 0.0012791172673718796, 1.569120704009106, 0.7847318894341841]
 
-            # joint_pose = [0.00, -0.25*math.pi, 0.00, -0.75 * math.pi, 0.00, 0.50 * math.pi, -0.673]
+            joint_pose = [-2.8298893005650064e-05, -0.7850717113980075, 0.0002637194674237419, -2.3563226722248816, 0.0012791172673718796, 1.569120704009106, 0.7847318894341841]
             self.move_joint_space(joint_pose)
             self.move_gripper(0.04)
-
-            # self.move_cartesian_space_2D([0.38, 0.00], False)
-            #self.move_joint_space()
 
     def stop_pick_and_place_client(self):
         self.pick_and_place_client.stop()
